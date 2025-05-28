@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="mk">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Психолошка Едукација - Чатбот</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
 </head>
 <body>
     <div class="container">
@@ -12,70 +12,63 @@
         <div class="disclaimer">
             <p><strong>Важно:</strong> Оваа платформа е само за едукативни цели и не нуди професионална психолошка помош. Доколку ви треба поддршка, контактирајте професионалец.</p>
         </div>
+
         <div class="chat-container">
-            <div id="chat-box"></div>
+            <div id="chat-box" class="chat-box" role="log" aria-live="polite"></div>
+
             <div class="input-area">
-                <input type="text" id="user-input" placeholder="Прашајте нешто (на пр. Како да се справам со стресот?)">
+                <input type="text" id="user-input" placeholder="Прашајте нешто (на пр. Како да се справам со стресот?)" aria-label="Внесете прашање" />
                 <button id="send-btn">Испрати</button>
             </div>
         </div>
     </div>
 
     <script>
-        document.getElementById('send-btn').addEventListener('click', sendMessage);
-        document.getElementById('user-input').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                sendMessage();
-            }
+        const userInputEl = document.getElementById('user-input');
+        const sendBtnEl = document.getElementById('send-btn');
+        const chatBoxEl = document.getElementById('chat-box');
+
+        sendBtnEl.addEventListener('click', sendMessage);
+        userInputEl.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') sendMessage();
         });
 
         function sendMessage() {
-            const userInput = document.getElementById('user-input').value.trim();
+            const userInput = userInputEl.value.trim();
             if (userInput === '') return;
 
-            // Add user message to chat
             addMessageToChat('user', userInput);
-            document.getElementById('user-input').value = '';
+            userInputEl.value = '';
 
-            // Show typing indicator
-            const typingIndicator = addMessageToChat('bot', '...', true);
+            const typingIndicator = addMessageToChat('bot', 'Чекајте...', true);
 
-            // Get bot response
             fetch('/get_response', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: `user_input=${encodeURIComponent(userInput)}`
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: userInput })
             })
             .then(response => response.json())
             .then(data => {
-                // Remove typing indicator and add actual response
-                document.getElementById('chat-box').removeChild(typingIndicator);
+                chatBoxEl.removeChild(typingIndicator);
                 addMessageToChat('bot', data.response);
             })
             .catch(error => {
                 console.error('Error:', error);
-                document.getElementById('chat-box').removeChild(typingIndicator);
+                chatBoxEl.removeChild(typingIndicator);
                 addMessageToChat('bot', 'Се случи грешка. Обидете се повторно.');
             });
         }
 
         function addMessageToChat(sender, message, isTyping = false) {
-            const chatBox = document.getElementById('chat-box');
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${sender}-message`;
-            
-            if (isTyping) {
-                messageDiv.id = 'typing-indicator';
-                messageDiv.textContent = message;
-            } else {
-                messageDiv.textContent = message;
-                // Scroll to bottom
-                chatBox.scrollTop = chatBox.scrollHeight;
-            }
-            
-            chatBox.appendChild(messageDiv);
+            messageDiv.textContent = message;
+
+            if (isTyping) messageDiv.id = 'typing-indicator';
+
+            chatBoxEl.appendChild(messageDiv);
+            chatBoxEl.scrollTo({ top: chatBoxEl.scrollHeight, behavior: 'smooth' });
+
             return messageDiv;
         }
     </script>
